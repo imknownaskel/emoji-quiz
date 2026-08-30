@@ -1,216 +1,164 @@
-import { useEffect, useState } from 'react'
-import './App.css'
-import AuthScreen from './components/AuthScreen'
-import GameScreen from './components/GameScreen'
-import HomeScreen from './components/HomeScreen'
-import ProfileScreen from './components/ProfileScreen'
-import ResultScreen from './components/ResultScreen'
+import { useEffect, useState } from 'react';
+import './App.css';
+import { supabase } from './lib/supabase.js';
+import { getProfile, updateProfile, signOut } from './lib/auth.js';
+import AuthScreen    from './components/AuthScreen.jsx';
+import HomeScreen    from './components/HomeScreen.jsx';
+import GameScreen    from './components/GameScreen.jsx';
+import ProfileScreen from './components/ProfileScreen.jsx';
+import ResultScreen  from './components/ResultScreen.jsx';
 
-const STORAGE_KEY = 'emojiQuizUsers'
-const SESSION_KEY = 'emojiQuizSession'
+export default function App() {
+  const [screen,        setScreen]        = useState('auth');
+  const [authUser,      setAuthUser]      = useState(null);
+  const [profile,       setProfile]       = useState(null);
+  const [resultSummary, setResultSummary] = useState({ score: 0, xpGained: 0 });
+  const [loading,       setLoading]       = useState(true);
 
-function getInitialUser() {
-  try {
-    const session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
-    if (session && session.username) {
-      const profile = getUserProfile(session.username)
-      return profile || null
+    const loadProfile = async (user) => {
+    const { profile: fetchedProfile, error } = await getProfile(user.id);
+    if (error) {
+      console.error('Failed to load profile:', error);
+      setLoading(false);
+      return;
     }
-  } catch (error) {
-    console.error('Failed to read session from localStorage', error)
-  }
-
-  return null
-}
-
-function getUserProfile(username) {
-  try {
-    const allUsers = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-    return allUsers[username] || null
-  } catch (error) {
-    console.error('Failed to read profiles from localStorage', error)
-    return null
-  }
-}
-
-function saveUserProfile(username, profile) {
-  const allUsers = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-  allUsers[username] = profile
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(allUsers))
-}
-
-function normalizeUsername(rawUsername) {
-  return rawUsername.trim()
-}
-
-function App() {
-  const [screen, setScreen] = useState('auth')
-  const [currentUser, setCurrentUser] = useState(() => getInitialUser())
-  const [resultSummary, setResultSummary] = useState({ score: 0, xpGained: 0 })
-
-  const activeUser = currentUser || getInitialUser()
+    setAuthUser(user);
+    setProfile(fetchedProfile);
+    setScreen('home');
+    setLoading(false);
+  };
 
   useEffect(() => {
-    if (!activeUser) {
-      setScreen('auth')
-      return
-    }
-
-    setScreen('home')
-  }, [activeUser])
-
-  useEffect(() => {
-    if (!activeUser) {
-      localStorage.removeItem(SESSION_KEY)
-      return
-    }
-
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ username: activeUser.username }))
-  }, [activeUser])
-
-  const handleAuthSubmit = ({ username, email, password, confirmPassword, isSignup }) => {
-    const cleanUsername = normalizeUsername(username)
-    const cleanPassword = password.trim()
-
-    if (!cleanUsername || !cleanPassword) {
-      return { ok: false, message: 'Username and password are required.' }
-    }
-
-    const users = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-
-    if (isSignup) {
-      const cleanEmail = email.trim()
-
-      if (!cleanEmail || !cleanPassword || !confirmPassword.trim()) {
-        return { ok: false, message: 'All sign-up fields are required.' }
+    const checkSession = async () => {
+      if (!hasSupabaseConfig || !supabase) {
+        const localUser = await getSession();
+        if (localUser) {
+          await loadProfile(localUser)
+        } else {
+          setLoading(false)
+        }
+        return
       }
 
-      if (password !== confirmPassword) {
-        return { ok: false, message: 'Passwords do not match.' }
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user ?? null;
+      if (user) {
+        await loadProfile(user);
+      } else {
+        setLoading(false);
       }
+    };
 
-      if (users[cleanUsername]) {
-        return { ok: false, message: 'That username already exists.' }
+    checkSession();
+
+    if (!hasSupabaseConfig || !supabase) {
+      return undefined
+    }
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const user = session?.user ?? null;
+      if (user) {
+        await loadProfile(user);
+      } else {
+        setAuthUser(null);
+        setProfile(null);
+        setScreen('auth');
+        setLoading(false);
       }
+    });
 
-      const newProfile = {
-        username: cleanUsername,
-        email: cleanEmail,
-        password: cleanPassword,
-        xp: 0,
-        level: 1,
-        highScore: 0,
-        language: 'English',
-      }
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
-      users[cleanUsername] = newProfile
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(users))
-      setCurrentUser(newProfile)
-      setScreen('home')
-      return { ok: true }
+  const handleAuth = async (user) => {
+    await loadProfile(user);
+  };
+
+  const handleProfileSave = async ({ username, language }) => {
+    if (!authUser) return;
+    const { error } = await updateProfile(authUser.id, { username, language });
+    if (error) {
+      console.error('Failed to update profile:', error);
+      return;
     }
+    setProfile(prev => ({ ...prev, username, language }));
+    setScreen('home');
+  };
 
-    const savedUser = users[cleanUsername]
-    if (!savedUser || savedUser.password !== cleanPassword) {
-      return { ok: false, message: 'Incorrect username or password.' }
-    }
+  const handleGameFinish = async (score, xpGained) => {
+    if (!authUser || !profile) return;
+    const nextXp        = (profile.xp         || 0) + xpGained;
+    const nextLevel     = Math.floor(nextXp / 100) + 1;
+    const nextHighScore = Math.max(profile.high_score || 0, score);
 
-    setCurrentUser(savedUser)
-    setScreen('home')
-    return { ok: true }
-  }
+    const { error } = await updateProfile(authUser.id, {
+      xp:         nextXp,
+      level:      nextLevel,
+      high_score: nextHighScore,
+    });
 
-  const handleProfileSave = ({ username, language }) => {
-    const oldUsername = activeUser.username
-    const cleanUsername = normalizeUsername(username)
+    if (error) console.error('Failed to save game result:', error);
 
-    if (!cleanUsername) {
-      return
-    }
+    setProfile(prev => ({
+      ...prev,
+      xp:         nextXp,
+      level:      nextLevel,
+      high_score: nextHighScore,
+    }));
 
-    const users = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-    const existingProfile = users[cleanUsername]
+    setResultSummary({ score, xpGained });
+    setScreen('result');
+  };
 
-    if (existingProfile && cleanUsername !== oldUsername) {
-      return
-    }
+  const handleLogout = async () => {
+    await signOut();
+  };
 
-    const updated = {
-      ...activeUser,
-      username: cleanUsername,
-      language,
-    }
-
-    delete users[oldUsername]
-    users[cleanUsername] = updated
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(users))
-
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ username: cleanUsername }))
-    setCurrentUser(updated)
-    setScreen('home')
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem(SESSION_KEY)
-    setCurrentUser(null)
-    setScreen('auth')
-  }
-
-  const handleGameFinish = (score, xpGained) => {
-    const updatedUser = { ...activeUser }
-    const nextXp = (updatedUser.xp || 0) + xpGained
-    const nextLevel = Math.floor(nextXp / 100) + 1
-
-    updatedUser.xp = nextXp
-    updatedUser.level = nextLevel
-    updatedUser.highScore = Math.max(updatedUser.highScore || 0, score)
-
-    saveUserProfile(activeUser.username, updatedUser)
-    setCurrentUser(updatedUser)
-    setResultSummary({ score, xpGained })
-    setScreen('result')
-  }
-
-  const handlePlayAgain = () => {
-    setScreen('home')
-  }
-
-  if (!activeUser && screen !== 'auth') {
-    return null
+  if (loading) {
+    return (
+      <div className="app-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{ fontFamily: 'var(--mono)', color: 'var(--muted)', fontSize: '0.9rem' }}>
+          Loading…
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="app-shell">
-      {screen === 'auth' && <AuthScreen onSubmit={handleAuthSubmit} />}
-      {screen === 'home' && activeUser && (
+      {screen === 'auth' && (
+        <AuthScreen onAuth={handleAuth} />
+      )}
+      {screen === 'home' && profile && (
         <HomeScreen
-          user={activeUser}
+          user={profile}
           onPlay={() => setScreen('game')}
           onSettings={() => setScreen('profile')}
         />
       )}
-      {screen === 'profile' && activeUser && (
+      {screen === 'profile' && profile && (
         <ProfileScreen
-          user={activeUser}
+          user={profile}
           onBack={() => setScreen('home')}
           onSave={handleProfileSave}
           onLogout={handleLogout}
         />
       )}
-      {screen === 'game' && activeUser && (
-        <GameScreen user={activeUser} onFinish={handleGameFinish} />
+      {screen === 'game' && profile && (
+        <GameScreen
+          user={profile}
+          onFinish={handleGameFinish}
+        />
       )}
-      {screen === 'result' && activeUser && (
+      {screen === 'result' && profile && (
         <ResultScreen
           score={resultSummary.score}
           totalQuestions={10}
           xpGained={resultSummary.xpGained}
-          user={activeUser}
-          onPlayAgain={handlePlayAgain}
+          user={profile}
+          onPlayAgain={() => setScreen('home')}
         />
       )}
     </div>
-  )
+  );
 }
-
-export default App

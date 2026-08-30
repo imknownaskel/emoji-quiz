@@ -22,7 +22,7 @@ function HomeScreen({ user, onPlay, onSettings }) {
         <div className="stats-grid">
           <div className="stat-card">
             <span>High Score</span>
-            <strong>{user.highScore || 0}</strong>
+            <strong>{user.high_score || 0}</strong>
           </div>
           <div className="stat-card">
             <span>Questions</span>
