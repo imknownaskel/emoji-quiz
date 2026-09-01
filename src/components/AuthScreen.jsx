@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { signUp, signIn, verifyOtp } from '../lib/auth.js'
+import { signUp, signIn } from '../lib/auth.js'
+import { supabase } from '../lib/supabase.js'
 
 const initialState = { username: '', email: '', password: '', confirmPassword: '' }
 
-function AuthScreen({ onAuth }) {
+function AuthScreen() {
   const [isSignup, setIsSignup] = useState(false)
   const [stage, setStage] = useState('auth')
   const [form, setForm] = useState(initialState)
-  const [otp, setOtp] = useState('')
   const [pendingEmail, setPendingEmail] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -49,7 +49,7 @@ function AuthScreen({ onAuth }) {
         return
       }
 
-      const { user, error: signUpError } = await signUp(email, password, username)
+      const { error: signUpError } = await signUp(email, password, username)
       if (signUpError) {
         setError(signUpError)
         setLoading(false)
@@ -57,10 +57,7 @@ function AuthScreen({ onAuth }) {
       }
 
       setPendingEmail(email)
-      setStage('otp')
-      if (onAuth && user) {
-        onAuth(user)
-      }
+      setStage('waiting')
       setLoading(false)
     } else {
       if (!email || !password) {
@@ -69,83 +66,48 @@ function AuthScreen({ onAuth }) {
         return
       }
 
-      const { user, error: signInError } = await signIn(email, password)
+      const { error: signInError } = await signIn(email, password)
       if (signInError) {
         setError(signInError)
         setLoading(false)
         return
       }
 
-      if (onAuth && user) {
-        onAuth(user)
-      }
       setLoading(false)
     }
   }
 
-  const handleOtp = async (event) => {
-    event.preventDefault()
-    setError('')
+  const handleCheckAgain = async () => {
     setLoading(true)
-
-    if (otp.length !== 6) {
-      setError('Enter the 6-digit code from your email.')
-      setLoading(false)
-      return
+    const { data } = await supabase.auth.getSession()
+    if (!data.session) {
+      setError('Not confirmed yet — click the link in your email first.')
     }
-
-    const { user, error: otpError } = await verifyOtp(pendingEmail, otp)
-    if (otpError) {
-      setError(otpError)
-      setLoading(false)
-      return
-    }
-
-    if (onAuth && user) {
-      onAuth(user)
-    }
-
     setLoading(false)
   }
 
-  if (stage === 'otp') {
+  if (stage === 'waiting') {
     return (
       <div className="screen auth-screen">
         <div className="auth-card">
           <h1>Check your email</h1>
           <p className="muted-text">
-            We sent a 6-digit code to <strong>{pendingEmail}</strong>
+            We sent a confirmation link to <strong>{pendingEmail}</strong>. Click it to activate your account — this page updates automatically once confirmed.
           </p>
 
-          <form onSubmit={handleOtp} className="auth-form">
-            <label>
-              <span>Confirmation code</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={otp}
-                onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                placeholder="000000"
-                autoFocus
-                required
-              />
-            </label>
+          {error ? <p className="error-text">{error}</p> : null}
 
-            {error ? <p className="error-text">{error}</p> : null}
+          <button type="button" className="primary-button full-width" onClick={handleCheckAgain} disabled={loading}>
+            {loading ? 'Checking…' : "I've confirmed — Continue"}
+          </button>
 
-            <button type="submit" className="primary-button full-width" disabled={loading || otp.length !== 6}>
-              {loading ? 'Verifying…' : 'Confirm account'}
-            </button>
-
-            <button
-              type="button"
-              className="secondary-button full-width"
-              onClick={() => { setStage('auth'); setOtp(''); setError('') }}
-            >
-              ← Back
-            </button>
-          </form>
+          <button
+            type="button"
+            className="secondary-button full-width"
+            onClick={() => { setStage('auth'); setError('') }}
+          >
+            ← Back
+          </button>
         </div>
       </div>
     )

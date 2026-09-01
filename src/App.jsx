@@ -15,8 +15,8 @@ export default function App() {
   const [resultSummary, setResultSummary] = useState({ score: 0, xpGained: 0 });
   const [loading,       setLoading]       = useState(true);
 
-    const loadProfile = async (user) => {
-    const { profile: fetchedProfile, error } = await getProfile(user.id);
+  const loadProfile = async (user) => {
+    const { profile: fetchedProfile, error } = await getProfile(user.id, user);
     if (error) {
       console.error('Failed to load profile:', error);
       setLoading(false);
@@ -30,16 +30,6 @@ export default function App() {
 
   useEffect(() => {
     const checkSession = async () => {
-      if (!hasSupabaseConfig || !supabase) {
-        const localUser = await getSession();
-        if (localUser) {
-          await loadProfile(localUser)
-        } else {
-          setLoading(false)
-        }
-        return
-      }
-
       const { data } = await supabase.auth.getSession();
       const user = data.session?.user ?? null;
       if (user) {
@@ -50,10 +40,6 @@ export default function App() {
     };
 
     checkSession();
-
-    if (!hasSupabaseConfig || !supabase) {
-      return undefined
-    }
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const user = session?.user ?? null;
