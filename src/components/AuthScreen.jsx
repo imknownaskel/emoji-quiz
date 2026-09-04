@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { signUp, signIn } from '../lib/auth.js'
-import { supabase } from '../lib/supabase.js'
+import { signUp, signIn, verifyOtp } from '../lib/auth.js'
 
 const initialState = { username: '', email: '', password: '', confirmPassword: '' }
 
@@ -8,6 +7,7 @@ function AuthScreen() {
   const [isSignup, setIsSignup] = useState(false)
   const [stage, setStage] = useState('auth')
   const [form, setForm] = useState(initialState)
+  const [otp, setOtp] = useState('')
   const [pendingEmail, setPendingEmail] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -57,7 +57,7 @@ function AuthScreen() {
       }
 
       setPendingEmail(email)
-      setStage('waiting')
+      setStage('otp')
       setLoading(false)
     } else {
       if (!email || !password) {
@@ -77,37 +77,66 @@ function AuthScreen() {
     }
   }
 
-  const handleCheckAgain = async () => {
+  const handleOtp = async (event) => {
+    event.preventDefault()
+    setError('')
     setLoading(true)
-    const { data } = await supabase.auth.getSession()
-    if (!data.session) {
-      setError('Not confirmed yet — click the link in your email first.')
+
+    if (otp.length !== 6) {
+      setError('Enter the 6-digit code from your email.')
+      setLoading(false)
+      return
     }
+
+    const { error: otpError } = await verifyOtp(pendingEmail, otp)
+    if (otpError) {
+      setError(otpError)
+      setLoading(false)
+      return
+    }
+
     setLoading(false)
   }
 
-  if (stage === 'waiting') {
+  if (stage === 'otp') {
     return (
       <div className="screen auth-screen">
         <div className="auth-card">
           <h1>Check your email</h1>
           <p className="muted-text">
-            We sent a confirmation link to <strong>{pendingEmail}</strong>. Click it to activate your account — this page updates automatically once confirmed.
+            We sent a 6-digit code to <strong>{pendingEmail}</strong>
           </p>
 
-          {error ? <p className="error-text">{error}</p> : null}
+          <form onSubmit={handleOtp} className="auth-form">
+            <label>
+              <span>Confirmation code</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={otp}
+                onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                placeholder="000000"
+                autoComplete="one-time-code"
+                autoFocus
+                required
+              />
+            </label>
 
-          <button type="button" className="primary-button full-width" onClick={handleCheckAgain} disabled={loading}>
-            {loading ? 'Checking…' : "I've confirmed — Continue"}
-          </button>
+            {error ? <p className="error-text">{error}</p> : null}
 
-          <button
-            type="button"
-            className="secondary-button full-width"
-            onClick={() => { setStage('auth'); setError('') }}
-          >
-            ← Back
-          </button>
+            <button type="submit" className="primary-button full-width" disabled={loading || otp.length !== 6}>
+              {loading ? 'Verifying…' : 'Confirm account'}
+            </button>
+
+            <button
+              type="button"
+              className="secondary-button full-width"
+              onClick={() => { setStage('auth'); setOtp(''); setError('') }}
+            >
+              ← Back
+            </button>
+          </form>
         </div>
       </div>
     )
@@ -148,6 +177,7 @@ function AuthScreen() {
                 value={form.username}
                 onChange={handleChange}
                 placeholder="emoji_master"
+                autoComplete="username"
                 required
               />
             </label>
@@ -161,6 +191,7 @@ function AuthScreen() {
               value={form.email}
               onChange={handleChange}
               placeholder="you@example.com"
+              autoComplete="email"
               required
             />
           </label>
@@ -173,6 +204,7 @@ function AuthScreen() {
               value={form.password}
               onChange={handleChange}
               placeholder="••••••••"
+              autoComplete={isSignup ? 'new-password' : 'current-password'}
               required
             />
           </label>
@@ -186,6 +218,7 @@ function AuthScreen() {
                 value={form.confirmPassword}
                 onChange={handleChange}
                 placeholder="••••••••"
+                autoComplete="new-password"
                 required
               />
             </label>

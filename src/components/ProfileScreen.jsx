@@ -45,6 +45,7 @@ function ProfileScreen({ user, onBack, onSave, onLogout }) {
             name="username"
             value={form.username}
             onChange={handleChange}
+            autoComplete="username"
           />
         </label>
 
