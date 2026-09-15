@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import './App.css';
-import { supabase } from './lib/supabase.js';
+import { auth } from './lib/firebase.js';
+import { onAuthStateChanged } from 'firebase/auth';
 import { getProfile, updateProfile, signOut } from './lib/auth.js';
 import AuthScreen    from './components/AuthScreen.jsx';
 import HomeScreen    from './components/HomeScreen.jsx';
@@ -13,47 +14,35 @@ export default function App() {
   const [authUser,      setAuthUser]      = useState(null);
   const [profile,       setProfile]       = useState(null);
   const [resultSummary, setResultSummary] = useState({ score: 0, xpGained: 0 });
-  const [loading,       setLoading]       = useState(true);
 
   const loadProfile = async (user) => {
-    const { profile: fetchedProfile, error } = await getProfile(user.id, user);
+    const { profile: fetchedProfile, error } = await getProfile(user.uid, user);
     if (error) {
       console.error('Failed to load profile:', error);
-      setLoading(false);
       return;
     }
+
     setAuthUser(user);
     setProfile(fetchedProfile);
     setScreen('home');
-    setLoading(false);
   };
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      const user = data.session?.user ?? null;
-      if (user) {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user && user.emailVerified) {
         await loadProfile(user);
-      } else {
-        setLoading(false);
-      }
-    };
-
-    checkSession();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const user = session?.user ?? null;
-      if (user) {
-        await loadProfile(user);
+      } else if (user) {
+        setAuthUser(user);
+        setProfile(null);
+        setScreen('auth');
       } else {
         setAuthUser(null);
         setProfile(null);
         setScreen('auth');
-        setLoading(false);
       }
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
   const handleAuth = async (user) => {
@@ -62,7 +51,7 @@ export default function App() {
 
   const handleProfileSave = async ({ username, language }) => {
     if (!authUser) return;
-    const { error } = await updateProfile(authUser.id, { username, language });
+    const { error } = await updateProfile(authUser.uid, { username, language });
     if (error) {
       console.error('Failed to update profile:', error);
       return;
@@ -77,7 +66,7 @@ export default function App() {
     const nextLevel     = Math.floor(nextXp / 100) + 1;
     const nextHighScore = Math.max(profile.high_score || 0, score);
 
-    const { error } = await updateProfile(authUser.id, {
+    const { error } = await updateProfile(authUser.uid, {
       xp:         nextXp,
       level:      nextLevel,
       high_score: nextHighScore,
@@ -99,16 +88,6 @@ export default function App() {
   const handleLogout = async () => {
     await signOut();
   };
-
-  if (loading) {
-    return (
-      <div className="app-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <div style={{ fontFamily: 'var(--mono)', color: 'var(--muted)', fontSize: '0.9rem' }}>
-          Loading…
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="app-shell">
@@ -134,6 +113,7 @@ export default function App() {
         <GameScreen
           user={profile}
           onFinish={handleGameFinish}
+          onCancel={() => setScreen('home')}
         />
       )}
       {screen === 'result' && profile && (

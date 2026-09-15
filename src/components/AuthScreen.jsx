@@ -1,16 +1,20 @@
 import { useState } from 'react'
-import { signUp, signIn, verifyOtp } from '../lib/auth.js'
+import { signUp, signIn, signInWithGoogle, resetPassword } from '../lib/auth.js'
+import { auth } from '../lib/firebase.js'
+import { reload } from 'firebase/auth'
 
 const initialState = { username: '', email: '', password: '', confirmPassword: '' }
 
-function AuthScreen() {
+function AuthScreen({ onAuth }) {
   const [isSignup, setIsSignup] = useState(false)
   const [stage, setStage] = useState('auth')
   const [form, setForm] = useState(initialState)
-  const [otp, setOtp] = useState('')
   const [pendingEmail, setPendingEmail] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -20,6 +24,7 @@ function AuthScreen() {
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
+    setSuccess('')
     setLoading(true)
 
     const username = form.username.trim()
@@ -57,7 +62,7 @@ function AuthScreen() {
       }
 
       setPendingEmail(email)
-      setStage('otp')
+      setStage('waiting')
       setLoading(false)
     } else {
       if (!email || !password) {
@@ -66,75 +71,144 @@ function AuthScreen() {
         return
       }
 
-      const { error: signInError } = await signIn(email, password)
+      const { user, error: signInError } = await signIn(email, password)
       if (signInError) {
         setError(signInError)
         setLoading(false)
         return
       }
 
+      if (user.emailVerified) {
+        onAuth(user)
+      } else {
+        setPendingEmail(email)
+        setStage('waiting')
+      }
       setLoading(false)
     }
   }
 
-  const handleOtp = async (event) => {
-    event.preventDefault()
+  const handleGoogle = async () => {
     setError('')
+    setSuccess('')
     setLoading(true)
-
-    if (otp.length !== 6) {
-      setError('Enter the 6-digit code from your email.')
+    const { user, error: googleError } = await signInWithGoogle(isSignup)
+    if (googleError) {
+      setError(googleError)
       setLoading(false)
       return
     }
-
-    const { error: otpError } = await verifyOtp(pendingEmail, otp)
-    if (otpError) {
-      setError(otpError)
-      setLoading(false)
-      return
-    }
-
+    onAuth(user)
     setLoading(false)
   }
 
-  if (stage === 'otp') {
+  const handleCheckAgain = async () => {
+    setLoading(true)
+    setError('')
+    await reload(auth.currentUser)
+    if (auth.currentUser.emailVerified) {
+      onAuth(auth.currentUser)
+    } else {
+      setError('Not verified yet — click the link in your email first.')
+    }
+    setLoading(false)
+  }
+
+  const handleForgotSubmit = async (event) => {
+    event.preventDefault()
+    setError('')
+    setSuccess('')
+
+    const email = form.email.trim()
+    if (!email || !email.includes('@') || !email.includes('.')) {
+      setError('Enter the email address connected to your account.')
+      return
+    }
+
+    setLoading(true)
+    const { error: resetError } = await resetPassword(email)
+    setLoading(false)
+
+    if (resetError) {
+      setError(resetError)
+      return
+    }
+
+    setSuccess('If an account exists for that email, a password reset link has been sent. Check your inbox.')
+  }
+
+  if (stage === 'waiting') {
     return (
       <div className="screen auth-screen">
-        <div className="auth-card">
-          <h1>Check your email</h1>
+        <div className="auth-card game-auth-card">
+          <div className="auth-card-head">
+            <span className="auth-badge">VERIFY EMAIL</span>
+            <h1>Check your email</h1>
+          </div>
           <p className="muted-text">
-            We sent a 6-digit code to <strong>{pendingEmail}</strong>
+            We sent a verification link to <strong>{pendingEmail}</strong>. Click it to activate your account.
+          </p>
+          <p className="muted-text">
+            Don't see it? Check your spam or junk folder — verification emails end up there sometimes.
           </p>
 
-          <form onSubmit={handleOtp} className="auth-form">
+          {error ? <p className="error-text" role="alert">{error}</p> : null}
+
+          <button type="button" className="primary-button full-width" onClick={handleCheckAgain} disabled={loading}>
+            {loading ? 'Checking…' : "I've verified — Continue"}
+          </button>
+
+          <button
+            type="button"
+            className="secondary-button full-width"
+            onClick={() => { setStage('auth'); setError('') }}
+          >
+            ← Back
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (stage === 'forgot') {
+    return (
+      <div className="screen auth-screen">
+        <div className="auth-card game-auth-card">
+          <div className="auth-card-head">
+            <span className="auth-badge">RECOVER ACCESS</span>
+            <h1>Reset password</h1>
+          </div>
+          <p className="muted-text">
+            Enter your email and we'll send you a link to reset your password.
+          </p>
+
+          <form onSubmit={handleForgotSubmit} className="auth-form">
             <label>
-              <span>Confirmation code</span>
+              <span>Email</span>
               <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={otp}
-                onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                placeholder="000000"
-                autoComplete="one-time-code"
-                autoFocus
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="you@example.com"
+                autoComplete="email"
                 required
               />
             </label>
 
-            {error ? <p className="error-text">{error}</p> : null}
+            {error ? <p className="error-text" role="alert">{error}</p> : null}
+            {success ? <p className="success-text">{success}</p> : null}
 
-            <button type="submit" className="primary-button full-width" disabled={loading || otp.length !== 6}>
-              {loading ? 'Verifying…' : 'Confirm account'}
+            <button type="submit" className="primary-button full-width" disabled={loading}>
+              {loading ? 'Sending…' : 'Send reset link'}
             </button>
 
             <button
               type="button"
               className="secondary-button full-width"
-              onClick={() => { setStage('auth'); setOtp(''); setError('') }}
+              onClick={() => { setStage('auth'); setError(''); setSuccess('') }}
             >
-              ← Back
+              ← Back to login
             </button>
           </form>
         </div>
@@ -144,28 +218,36 @@ function AuthScreen() {
 
   return (
     <div className="screen auth-screen">
-      <div className="auth-card">
+      <div className="auth-card game-auth-card">
         <div className="auth-toggle" aria-label="Authentication mode">
           <button
             type="button"
             className={isSignup ? '' : 'active'}
-            onClick={() => { setIsSignup(false); setError('') }}
+            onClick={() => { setIsSignup(false); setError(''); setSuccess('') }}
           >
             Login
           </button>
           <button
             type="button"
             className={isSignup ? 'active' : ''}
-            onClick={() => { setIsSignup(true); setError('') }}
+            onClick={() => { setIsSignup(true); setError(''); setSuccess('') }}
           >
             Sign Up
           </button>
         </div>
 
-        <h1>{isSignup ? 'Create your account' : 'Welcome back'}</h1>
-        <p className="muted-text">
-          {isSignup ? 'Set up your profile to begin.' : 'Log in to continue your streak.'}
-        </p>
+        <div className="auth-heading-block">
+          <span className="auth-badge">{isSignup ? 'PLAYER SIGNUP' : 'PLAYER LOGIN'}</span>
+          <h1>{isSignup ? 'Create your account' : 'Welcome back'}</h1>
+          <p className="muted-text">
+            {isSignup ? 'Set up your profile to begin.' : 'Log in to continue your streak.'}
+          </p>
+        </div>
+
+        <div className="signup-guide">
+          <span className="guide-spark">✦</span>
+          <span>{isSignup ? 'Start a new profile for your first game run.' : 'New here? Choose Sign Up to create a profile first.'}</span>
+        </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
           {isSignup ? (
@@ -177,7 +259,6 @@ function AuthScreen() {
                 value={form.username}
                 onChange={handleChange}
                 placeholder="emoji_master"
-                autoComplete="username"
                 required
               />
             </label>
@@ -191,40 +272,64 @@ function AuthScreen() {
               value={form.email}
               onChange={handleChange}
               placeholder="you@example.com"
-              autoComplete="email"
               required
             />
           </label>
 
           <label>
             <span>Password</span>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              autoComplete={isSignup ? 'new-password' : 'current-password'}
-              required
-            />
+            <div className="password-wrap">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                placeholder="••••••••"
+                required
+              />
+              <button
+                type="button"
+                className="eye-button"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
+            {!isSignup && (
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => { setStage('forgot'); setError(''); setSuccess('') }}
+              >
+                Forgot password?
+              </button>
+            )}
           </label>
 
           {isSignup ? (
             <label>
               <span>Confirm Password</span>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                placeholder="••••••••"
-                autoComplete="new-password"
-                required
-              />
+              <div className="password-wrap">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  className="eye-button"
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
             </label>
           ) : null}
-
-          {error ? <p className="error-text">{error}</p> : null}
 
           <button type="submit" className="primary-button full-width" disabled={loading}>
             {loading
@@ -233,6 +338,17 @@ function AuthScreen() {
             }
           </button>
         </form>
+
+        <div style={{ margin: '1rem 0', textAlign: 'center', color: 'var(--muted, #888)', fontSize: '0.85rem' }}>
+          or
+        </div>
+
+        <button type="button" className="secondary-button full-width" onClick={handleGoogle} disabled={loading}>
+          Continue with Google
+        </button>
+
+        {error ? <p className="error-text" role="alert">{error}</p> : null}
+        {success ? <p className="success-text">{success}</p> : null}
       </div>
     </div>
   )

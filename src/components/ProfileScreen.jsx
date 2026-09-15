@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 const languageOptions = ['English', 'French', 'Spanish', 'Pidgin']
 
@@ -7,13 +7,6 @@ function ProfileScreen({ user, onBack, onSave, onLogout }) {
     username: user?.username || '',
     language: user?.language || 'English',
   })
-
-  useEffect(() => {
-    setForm({
-      username: user?.username || '',
-      language: user?.language || 'English',
-    })
-  }, [user])
 
   const handleChange = (event) => {
     const { name, value } = event.target

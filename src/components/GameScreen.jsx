@@ -1,26 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GAME_SETTINGS, getQuestionsForLevel, getXPGainForLevel } from '../data/questions'
 
-function GameScreen({ user, onFinish }) {
-  const [questionSet, setQuestionSet] = useState([])
+function GameScreen({ user, onFinish, onCancel }) {
+  const questionSet = useMemo(() => getQuestionsForLevel(user.level || 1, GAME_SETTINGS.totalQuestions), [user.level])
   const [questionIndex, setQuestionIndex] = useState(0)
   const [score, setScore] = useState(0)
   const [timer, setTimer] = useState(GAME_SETTINGS.timerSeconds)
   const [selectedAnswer, setSelectedAnswer] = useState(null)
   const [xpGained, setXpGained] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
 
   const timerRef = useRef(null)
   const advanceRef = useRef(null)
-
-  useEffect(() => {
-    const nextSet = getQuestionsForLevel(user.level || 1, GAME_SETTINGS.totalQuestions)
-    setQuestionSet(nextSet)
-    setQuestionIndex(0)
-    setScore(0)
-    setTimer(GAME_SETTINGS.timerSeconds)
-    setSelectedAnswer(null)
-    setXpGained(0)
-  }, [user.level])
 
   useEffect(() => {
     return () => {
@@ -35,7 +26,17 @@ function GameScreen({ user, onFinish }) {
 
   const currentQuestion = questionSet[questionIndex]
 
-  const finishRound = (nextScore, nextXp) => {
+  const handleCancel = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+    }
+    if (advanceRef.current) {
+      clearTimeout(advanceRef.current)
+    }
+    onCancel()
+  }, [onCancel])
+
+  const finishRound = useCallback((nextScore, nextXp) => {
     if (questionIndex >= GAME_SETTINGS.totalQuestions - 1) {
       onFinish(nextScore, nextXp)
       return
@@ -44,10 +45,10 @@ function GameScreen({ user, onFinish }) {
     setQuestionIndex((previous) => previous + 1)
     setTimer(GAME_SETTINGS.timerSeconds)
     setSelectedAnswer(null)
-  }
+  }, [onFinish, questionIndex])
 
-  const handleAnswer = (option, timedOut = false) => {
-    if (!currentQuestion || selectedAnswer !== null) {
+  const handleAnswer = useCallback((option, timedOut = false) => {
+    if (!currentQuestion || isPaused || selectedAnswer !== null) {
       return
     }
 
@@ -67,10 +68,10 @@ function GameScreen({ user, onFinish }) {
     advanceRef.current = setTimeout(() => {
       finishRound(nextScore, nextXp)
     }, 1000)
-  }
+  }, [currentQuestion, finishRound, isPaused, score, selectedAnswer, user.level, xpGained])
 
   useEffect(() => {
-    if (!currentQuestion || selectedAnswer !== null) {
+    if (!currentQuestion || isPaused || selectedAnswer !== null) {
       return undefined
     }
 
@@ -87,7 +88,7 @@ function GameScreen({ user, onFinish }) {
     }, 1000)
 
     return () => clearInterval(timerRef.current)
-  }, [currentQuestion, selectedAnswer, questionIndex])
+  }, [currentQuestion, handleAnswer, isPaused, selectedAnswer])
 
   if (!currentQuestion) {
     return <div className="screen">Loading question...</div>
@@ -105,6 +106,25 @@ function GameScreen({ user, onFinish }) {
 
         <div className="timer-badge">{timer}s</div>
         <div className="score-badge">Score {score}</div>
+        <div className="game-controls">
+          <button
+            type="button"
+            className="secondary-button game-control-button"
+            onClick={() => setIsPaused((previous) => !previous)}
+              aria-label="Pause game"
+              disabled={isPaused}
+          >
+              {isPaused ? 'Ⅱ Paused' : 'Ⅱ Pause'}
+          </button>
+          <button
+            type="button"
+            className="danger-button game-control-button cancel-button"
+            onClick={handleCancel}
+            aria-label="Cancel game session"
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       <div className="question-panel panel">
@@ -149,6 +169,16 @@ function GameScreen({ user, onFinish }) {
             )
           })}
         </div>
+
+        {isPaused ? (
+          <div className="pause-overlay" role="dialog" aria-modal="true" aria-label="Game paused">
+            <strong>Game paused</strong>
+            <span>Answers and the timer are paused.</span>
+            <button type="button" className="danger-button" onClick={handleCancel}>
+              × Cancel session
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   )
