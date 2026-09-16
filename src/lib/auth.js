@@ -1,5 +1,5 @@
 import { auth, db } from './firebase.js';
-import { authGuard } from './authGuardtemp.js';
+import { authGuard } from './authGuard.js';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import './App.css';
 import { auth } from './lib/firebase.js';
 import { onAuthStateChanged } from 'firebase/auth';
-import { authGuard } from './lib/authGuardtemp.js';
+import { authGuard } from './lib/authGuard.js';
 import { getProfile, updateProfile, signOut } from './lib/auth.js';
 import AuthScreen        from './components/AuthScreen.jsx';
 import LandingPage       from './components/LandingPage.jsx';
