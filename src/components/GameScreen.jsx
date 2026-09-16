@@ -162,7 +162,7 @@ function GameScreen({ user, onFinish, onCancel }) {
                 type="button"
                 className={className}
                 onClick={() => handleAnswer(option, false)}
-                disabled={selectedAnswer !== null}
+                disabled={selectedAnswer !== null || isPaused}
               >
                 {option}
               </button>

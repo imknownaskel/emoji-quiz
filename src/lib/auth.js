@@ -1,4 +1,5 @@
 import { auth, db } from './firebase.js';
+import { authGuard } from './authGuard.js';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -73,6 +74,7 @@ export async function signIn(email, password) {
 }
 
 export async function signInWithGoogle(isSignupMode) {
+  authGuard.suppressed = true;
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const { user } = result;
@@ -104,6 +106,8 @@ export async function signInWithGoogle(isSignupMode) {
     return { user, error: null };
   } catch (error) {
     return { user: null, error: mapAuthError(error) };
+  } finally {
+    authGuard.suppressed = false;
   }
 }
 

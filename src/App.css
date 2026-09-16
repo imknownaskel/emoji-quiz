@@ -639,3 +639,161 @@ h2 {
     grid-template-columns: 1fr;
   }
 }
+
+
+.landing-page {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #E8E4DC;
+}
+
+.landing-emoji-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.landing-emoji-grid {
+  position: absolute;
+  top: -25%;
+  left: -25%;
+  width: 150%;
+  height: 150%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.2rem;
+  transform: rotate(-14deg);
+  transform-origin: center;
+}
+
+.landing-emoji-row {
+  overflow: hidden;
+  width: 100%;
+}
+
+.landing-emoji-track {
+  display: flex;
+  gap: 2.2rem;
+  width: max-content;
+}
+
+.scroll-left .landing-emoji-track {
+  animation: marquee-scroll 22s linear infinite;
+}
+
+.scroll-right .landing-emoji-track {
+  animation: marquee-scroll 22s linear infinite reverse;
+}
+
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.landing-emoji-cell {
+  font-size: 2.4rem;
+  line-height: 1;
+  opacity: 0.55;
+  flex-shrink: 0;
+  transition: opacity 0.3s ease;
+  user-select: none;
+}
+
+.landing-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 3rem 1.5rem;
+  min-height: 100vh;
+  justify-content: center;
+}
+
+.landing-box {
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+}
+
+.landing-hero .landing-logo {
+  font-family: monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 1rem;
+}
+
+.landing-hero .landing-logo span {
+  color: #7C6AF7;
+}
+
+.landing-hero h1 {
+  font-size: 1.8rem;
+  margin-bottom: 0.75rem;
+  color: #111;
+}
+
+.landing-hero p {
+  color: #555;
+  margin-bottom: 1.5rem;
+}
+
+.landing-cta {
+  width: auto;
+  padding: 0.9rem 2.5rem;
+}
+
+.landing-features {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 900px;
+}
+
+.landing-feature {
+  flex: 1;
+  min-width: 220px;
+  max-width: 280px;
+}
+
+.landing-feature-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.landing-feature h3 {
+  margin-bottom: 0.4rem;
+  color: #111;
+}
+
+.landing-feature p {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.landing-footer {
+  padding: 1rem 2rem;
+}
+
+.landing-footer p {
+  color: #888;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .landing-emoji-cell { font-size: 1.8rem; }
+  .landing-hero h1 { font-size: 1.4rem; }
+  .landing-box { padding: 1.5rem; }
+}
