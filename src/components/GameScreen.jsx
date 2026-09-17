@@ -111,10 +111,9 @@ function GameScreen({ user, onFinish, onCancel }) {
             type="button"
             className="secondary-button game-control-button"
             onClick={() => setIsPaused((previous) => !previous)}
-              aria-label="Pause game"
-              disabled={isPaused}
+            aria-label={isPaused ? 'Resume game' : 'Pause game'}
           >
-              {isPaused ? 'Ⅱ Paused' : 'Ⅱ Pause'}
+            {isPaused ? '▶ Resume' : 'Ⅱ Pause'}
           </button>
           <button
             type="button"
