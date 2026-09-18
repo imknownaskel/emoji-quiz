@@ -1,14 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GAME_SETTINGS, getQuestionsForLevel, getXPGainForLevel } from '../data/questions'
+import { getLanguageCode, translateLabels, translateText } from '../lib/translate.js'
 
-function GameScreen({ user, onFinish, onCancel }) {
-  const questionSet = useMemo(() => getQuestionsForLevel(user.level || 1, GAME_SETTINGS.totalQuestions), [user.level])
+function GameScreen({ user, levelNumber, helpOpen, onFinish, onCancel }) {
+  const currentLevel = Math.min(Math.max(Number(levelNumber) || 1, 1), 10)
+  const questionSet = useMemo(() => getQuestionsForLevel(currentLevel, GAME_SETTINGS.totalQuestions), [currentLevel])
   const [questionIndex, setQuestionIndex] = useState(0)
   const [score, setScore] = useState(0)
   const [timer, setTimer] = useState(GAME_SETTINGS.timerSeconds)
   const [selectedAnswer, setSelectedAnswer] = useState(null)
   const [xpGained, setXpGained] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
+  const [labels, setLabels] = useState({
+    level: 'Level',
+    score: 'Score',
+    prompt: 'Which category fits these emojis?',
+    pause: 'Pause',
+    resume: 'Resume',
+    paused: 'Game paused',
+    pauseHint: 'Answers and the timer are paused.',
+    cancel: 'Cancel session',
+  })
 
   const timerRef = useRef(null)
   const advanceRef = useRef(null)
@@ -53,7 +65,7 @@ function GameScreen({ user, onFinish, onCancel }) {
     }
 
     const isCorrect = !timedOut && option === currentQuestion.correct
-    const gain = isCorrect ? getXPGainForLevel(user.level || 1) : 0
+    const gain = isCorrect ? getXPGainForLevel(currentLevel) : 0
     const nextScore = score + (isCorrect ? 1 : 0)
     const nextXp = xpGained + gain
 
@@ -68,7 +80,7 @@ function GameScreen({ user, onFinish, onCancel }) {
     advanceRef.current = setTimeout(() => {
       finishRound(nextScore, nextXp)
     }, 1000)
-  }, [currentQuestion, finishRound, isPaused, score, selectedAnswer, user.level, xpGained])
+  }, [currentQuestion, currentLevel, finishRound, isPaused, score, selectedAnswer, xpGained])
 
   useEffect(() => {
     if (!currentQuestion || isPaused || selectedAnswer !== null) {
@@ -90,6 +102,63 @@ function GameScreen({ user, onFinish, onCancel }) {
     return () => clearInterval(timerRef.current)
   }, [currentQuestion, handleAnswer, isPaused, selectedAnswer])
 
+  useEffect(() => {
+    if (helpOpen) {
+      setIsPaused(true)
+    }
+  }, [helpOpen])
+
+  useEffect(() => {
+    let active = true
+
+    const loadLabels = async () => {
+      const language = user?.language || 'English'
+      const languageCode = getLanguageCode(language)
+
+      try {
+        const translatedLabels = await translateLabels(language, [
+          'level',
+          'score',
+          'prompt',
+          'pause',
+          'resume',
+          'paused',
+          'pauseHint',
+          'cancel',
+        ])
+
+        if (active) {
+          setLabels({
+            level: translatedLabels.level || 'Level',
+            score: translatedLabels.score || 'Score',
+            prompt: translatedLabels.prompt || 'Which category fits these emojis?',
+            pause: translatedLabels.pause || 'Pause',
+            resume: translatedLabels.resume || 'Resume',
+            paused: translatedLabels.paused || 'Game paused',
+            pauseHint: translatedLabels.pauseHint || 'Answers and the timer are paused.',
+            cancel: translatedLabels.cancel || 'Cancel session',
+          })
+        }
+      } catch (error) {
+        if (active) {
+          setLabels({
+            level: 'Level',
+            score: 'Score',
+            prompt: 'Which category fits these emojis?',
+            pause: 'Pause',
+            resume: 'Resume',
+            paused: 'Game paused',
+            pauseHint: 'Answers and the timer are paused.',
+            cancel: 'Cancel session',
+          })
+        }
+      }
+    }
+
+    loadLabels()
+    return () => { active = false }
+  }, [user?.language])
+
   if (!currentQuestion) {
     return <div className="screen">Loading question...</div>
   }
@@ -98,14 +167,14 @@ function GameScreen({ user, onFinish, onCancel }) {
     <div className="screen game-screen">
       <div className="game-topbar">
         <div>
-          <p className="eyebrow">Question</p>
+          <p className="eyebrow">{labels.level} {currentLevel}</p>
           <strong>
             {questionIndex + 1} / {GAME_SETTINGS.totalQuestions}
           </strong>
         </div>
 
         <div className="timer-badge">{timer}s</div>
-        <div className="score-badge">Score {score}</div>
+        <div className="score-badge">{labels.score} {score}</div>
         <div className="game-controls">
           <button
             type="button"
@@ -113,13 +182,13 @@ function GameScreen({ user, onFinish, onCancel }) {
             onClick={() => setIsPaused((previous) => !previous)}
             aria-label={isPaused ? 'Resume game' : 'Pause game'}
           >
-            {isPaused ? '▶ Resume' : 'Ⅱ Pause'}
+            {isPaused ? `▶ ${labels.resume}` : `Ⅱ ${labels.pause}`}
           </button>
           <button
             type="button"
             className="danger-button game-control-button cancel-button"
             onClick={handleCancel}
-            aria-label="Cancel game session"
+            aria-label={labels.cancel}
           >
             ×
           </button>
@@ -127,7 +196,7 @@ function GameScreen({ user, onFinish, onCancel }) {
       </div>
 
       <div className="question-panel panel">
-        <p className="game-label">Which category fits these emojis?</p>
+        <p className="game-label">{labels.prompt}</p>
         <div className="emoji-grid" aria-label="Emoji clue">
           {currentQuestion.emojis.map((emoji, index) => (
             <span key={`${emoji}-${index}`} className="emoji-item">
@@ -170,11 +239,11 @@ function GameScreen({ user, onFinish, onCancel }) {
         </div>
 
         {isPaused ? (
-          <div className="pause-overlay" role="dialog" aria-modal="true" aria-label="Game paused">
-            <strong>Game paused</strong>
-            <span>Answers and the timer are paused.</span>
+          <div className="pause-overlay" role="dialog" aria-modal="true" aria-label={labels.paused}>
+            <strong>{labels.paused}</strong>
+            <span>{labels.pauseHint}</span>
             <button type="button" className="danger-button" onClick={handleCancel}>
-              × Cancel session
+              × {labels.cancel}
             </button>
           </div>
         ) : null}

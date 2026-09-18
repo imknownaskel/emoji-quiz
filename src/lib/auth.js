@@ -15,14 +15,23 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   collection,
   query,
   orderBy,
   limit,
   getDocs,
 } from 'firebase/firestore';
+import { getDefaultLanguage } from './translate.js';
 
 const googleProvider = new GoogleAuthProvider();
+
+function getTodayKey() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  const local = new Date(now.getTime() - offset * 60 * 1000);
+  return local.toISOString().slice(0, 10);
+}
 
 function mapAuthError(error) {
   switch (error.code) {
@@ -43,19 +52,24 @@ function mapAuthError(error) {
   }
 }
 
-export async function signUp(email, password, username) {
+export async function signUp(email, password, username, language = getDefaultLanguage()) {
   try {
     const { user } = await createUserWithEmailAndPassword(auth, email, password);
 
     await updateAuthProfile(user, { displayName: username });
     await sendEmailVerification(user);
 
+    const resolvedLanguage = language || getDefaultLanguage();
+
     await setDoc(doc(db, 'profiles', user.uid), {
       username,
-      xp:         0,
-      level:      1,
-      high_score: 0,
-      language:   'English',
+      xp:                     0,
+      level:                  1,
+      highest_unlocked_level: 1,
+      completed_levels:       [],
+      high_score:             0,
+      language:               resolvedLanguage,
+      last_daily_reset_date:  getTodayKey(),
     });
 
     return { user, error: null };
@@ -95,11 +109,14 @@ export async function signInWithGoogle(isSignupMode) {
 
     if (!accountExists) {
       await setDoc(profileRef, {
-        username:   user.displayName || user.email.split('@')[0],
-        xp:         0,
-        level:      1,
-        high_score: 0,
-        language:   'English',
+        username:                user.displayName || user.email.split('@')[0],
+        xp:                      0,
+        level:                   1,
+        highest_unlocked_level: 1,
+        completed_levels:        [],
+        high_score:              0,
+        language:                getDefaultLanguage(),
+        last_daily_reset_date:   getTodayKey(),
       });
     }
 
@@ -146,10 +163,13 @@ export async function getProfile(userId, fallbackUser) {
       const username = fallbackUser.displayName || fallbackUser.email.split('@')[0];
       const newProfile = {
         username,
-        xp:         0,
-        level:      1,
-        high_score: 0,
-        language:   'English',
+        xp:                      0,
+        level:                   1,
+        highest_unlocked_level: 1,
+        completed_levels:        [],
+        high_score:              0,
+        language:                getDefaultLanguage(),
+        last_daily_reset_date:   getTodayKey(),
       };
 
       await setDoc(profileRef, newProfile);
@@ -168,6 +188,52 @@ export async function updateProfile(userId, fields) {
     return { error: null };
   } catch (error) {
     return { error: error.message };
+  }
+}
+
+export async function resetAccountData(userId, username) {
+  try {
+    await updateDoc(doc(db, 'profiles', userId), {
+      username,
+      xp: 0,
+      level: 1,
+      high_score: 0,
+      highest_unlocked_level: 1,
+      completed_levels: [],
+      language: getDefaultLanguage(),
+      last_daily_reset_date: getTodayKey(),
+    });
+    return { error: null };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+export async function deleteAccount(userId) {
+  try {
+    const currentUser = auth.currentUser;
+
+    if (!currentUser || currentUser.uid !== userId) {
+      return { error: 'You must be signed in to delete this account.' };
+    }
+
+    await currentUser.delete();
+
+    try {
+      await deleteDoc(doc(db, 'profiles', userId));
+    } catch (profileError) {
+      console.warn('Profile document cleanup failed after account deletion:', profileError);
+    }
+
+    return { error: null };
+  } catch (error) {
+    if (error && error.code === 'auth/requires-recent-login') {
+      return {
+        error: 'Please sign in again and then try deleting your account.',
+      };
+    }
+
+    return { error: error?.message || 'Unable to delete account right now.' };
   }
 }
 

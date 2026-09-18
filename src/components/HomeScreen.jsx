@@ -1,6 +1,6 @@
 import LevelDisplay from './LevelDisplay'
 
-function HomeScreen({ user, onPlay, onSettings }) {
+function HomeScreen({ user, onPlay, onSettings, onViewLeaderboard }) {
   const questionCount = 10
   const timerSeconds = 8
 
@@ -11,9 +11,14 @@ function HomeScreen({ user, onPlay, onSettings }) {
           <p className="eyebrow">Player</p>
           <h2>{user.username}</h2>
         </div>
-        <button type="button" className="secondary-button" onClick={onSettings}>
-          Settings
-        </button>
+        <div className="topbar-actions">
+          <button type="button" className="secondary-button" onClick={onViewLeaderboard}>
+            Leaderboard
+          </button>
+          <button type="button" className="secondary-button" onClick={onSettings}>
+            Settings
+          </button>
+        </div>
       </header>
 
       <div className="panel">

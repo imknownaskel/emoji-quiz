@@ -1,86 +1,133 @@
 export const GAME_SETTINGS = {
   totalQuestions: 10,
   timerSeconds: 8,
+  passThreshold: 60,
 }
 
-export const emojiSets = ['easy', 'medium', 'hard']
-
-export const questionTiers = {
-  easy: [
-    { emojis: ['🍕', '🍔', '🌮', '🍜'], correct: 'Food', options: ['Food', 'Sports', 'Animals', 'Travel'] },
-    { emojis: ['🐶', '🐱', '🐰', '🦊'], correct: 'Animals', options: ['Animals', 'Food', 'Music', 'Weather'] },
-    { emojis: ['⚽', '🏀', '🎾', '🏈'], correct: 'Sports', options: ['Sports', 'Science', 'Jobs', 'Nature'] },
-    { emojis: ['✈️', '🚂', '🚗', '🛳️'], correct: 'Travel', options: ['Travel', 'Kitchen', 'Gaming', 'School'] },
-    { emojis: ['🌊', '🌧️', '☀️', '❄️'], correct: 'Weather', options: ['Weather', 'Music', 'Tools', 'Books'] },
-    { emojis: ['📚', '✏️', '📝', '🧠'], correct: 'School', options: ['School', 'Food', 'Animals', 'Furniture'] },
-    { emojis: ['🎵', '🎸', '🎧', '🎹'], correct: 'Music', options: ['Music', 'Space', 'Travel', 'Garden'] },
-    { emojis: ['🌳', '🌼', '🌵', '🌿'], correct: 'Nature', options: ['Nature', 'Fashion', 'Technology', 'Office'] },
-    { emojis: ['🧰', '🔧', '🪚', '🔨'], correct: 'Tools', options: ['Tools', 'Animals', 'Food', 'Sports'] },
-    { emojis: ['🚀', '🪐', '🌙', '⭐'], correct: 'Space', options: ['Space', 'Fashion', 'Weather', 'School'] },
-  ],
-  medium: [
-    { emojis: ['🧊', '🔥', '💧', '🌬️'], correct: 'Elements', options: ['Elements', 'Transport', 'Furniture', 'Body Parts'] },
-    { emojis: ['🦁', '🐘', '🦒', '🦏'], correct: 'Mammals', options: ['Mammals', 'Birds', 'Fish', 'Reptiles'] },
-    { emojis: ['🍎', '🍌', '🍇', '🥭'], correct: 'Fruit', options: ['Fruit', 'Vegetables', 'Desserts', 'Drinks'] },
-    { emojis: ['🧣', '🧥', '👟', '👕'], correct: 'Clothes', options: ['Clothes', 'Electronics', 'Office', 'Plants'] },
-    { emojis: ['🖥️', '📱', '💻', '🖱️'], correct: 'Technology', options: ['Technology', 'Art', 'Cooking', 'Surgery'] },
-    { emojis: ['🎨', '🖌️', '🖼️', '🎭'], correct: 'Art', options: ['Art', 'Music', 'Science', 'Garden'] },
-    { emojis: ['🦅', '🐦', '🦆', '🕊️'], correct: 'Birds', options: ['Birds', 'Mammals', 'Fish', 'Insects'] },
-    { emojis: ['🦀', '🐠', '🐡', '🐬'], correct: 'Fish', options: ['Fish', 'Reptiles', 'Mammals', 'Amphibians'] },
-    { emojis: ['🧱', '🛋️', '🪑', '🛏️'], correct: 'Furniture', options: ['Furniture', 'Food', 'Sports', 'Jobs'] },
-    { emojis: ['🍷', '☕', '🍺', '🥤'], correct: 'Drinks', options: ['Drinks', 'Fruit', 'Desserts', 'Plants'] },
-    { emojis: ['🌾', '🥕', '🥬', '🌽'], correct: 'Vegetables', options: ['Vegetables', 'Fruit', 'Desserts', 'Tools'] },
-    { emojis: ['🧲', '🔌', '🔋', '📡'], correct: 'Electronics', options: ['Electronics', 'Furniture', 'Office', 'Animals'] },
-  ],
-  hard: [
-    { emojis: ['🐍', '🦎', '🐢', '🦖'], correct: 'Reptiles', options: ['Reptiles', 'Amphibians', 'Insects', 'Fish'] },
-    { emojis: ['🦋', '🐝', '🕷️', '🐜'], correct: 'Insects', options: ['Insects', 'Reptiles', 'Birds', 'Mammals'] },
-    { emojis: ['🦇', '🐈', '🦉', '🦔'], correct: 'Animals', options: ['Animals', 'Plants', 'Tools', 'Vehicles'] },
-    { emojis: ['🍓', '🍑', '🥝', '🍋'], correct: 'Fruit', options: ['Fruit', 'Vegetables', 'Berries', 'Dairy'] },
-    { emojis: ['🚗', '🚕', '🚌', '🚎'], correct: 'Vehicles', options: ['Vehicles', 'Tools', 'Sports', 'Music'] },
-    { emojis: ['🌾', '🥕', '🥬', '🌽'], correct: 'Vegetables', options: ['Vegetables', 'Fruits', 'Desserts', 'Drinks'] },
-    { emojis: ['🎻', '🎼', '🎺', '🎷'], correct: 'Music Instruments', options: ['Music Instruments', 'Sports Equipment', 'Kitchen Tools', 'Office Items'] },
-    { emojis: ['🦴', '🫀', '🧠', '🫁'], correct: 'Body Parts', options: ['Body Parts', 'Weather', 'Animals', 'Plants'] },
-    { emojis: ['🌴', '🌺', '🌵', '🌾'], correct: 'Plants', options: ['Plants', 'Animals', 'Furniture', 'Tech'] },
-    { emojis: ['💼', '📊', '🧾', '📁'], correct: 'Office', options: ['Office', 'Travel', 'Science', 'Food'] },
-    { emojis: ['🦭', '🐧', '🐳', '🐠'], correct: 'Sea Life', options: ['Sea Life', 'Birds', 'Mammals', 'Reptiles'] },
-    { emojis: ['🔬', '🧪', '🧬', '⚗️'], correct: 'Science', options: ['Science', 'Art', 'Travel', 'Music'] },
-  ],
+const CATEGORY_LIBRARY = {
+  Food: [['🍕', '🍔', '🌮', '🍜'], ['🍓', '🍇', '🍉', '🍋'], ['🥪', '🌮', '🍝', '🍣']],
+  Animals: [['🐶', '🐱', '🐰', '🦊'], ['🐼', '🐵', '🦁', '🐸'], ['🦄', '🐢', '🐧', '🐼']],
+  Sports: [['⚽', '🏀', '🎾', '🏈'], ['🏏', '🥊', '🏐', '🏓'], ['🚴', '🤸', '🏊', '⛳']],
+  Travel: [['✈️', '🚂', '🚗', '🛳️'], ['🏖️', '🗺️', '🧳', '🚕'], ['🚆', '🚌', '🚢', '🚁']],
+  Weather: [['🌊', '🌧️', '☀️', '❄️'], ['🌤️', '⛈️', '🌪️', '🌈'], ['🌙', '🌫️', '🌩️', '☁️']],
+  School: [['📚', '✏️', '📝', '🧠'], ['🧮', '📐', '📏', '📖'], ['🎒', '🖊️', '📓', '🧾']],
+  Music: [['🎵', '🎸', '🎧', '🎹'], ['🎻', '🎺', '🎷', '📻'], ['🎤', '🎼', '🥁', '🎹']],
+  Nature: [['🌳', '🌼', '🌵', '🌿'], ['🌊', '🌾', '🌱', '🪴'], ['🏞️', '🌋', '🌄', '🌿']],
+  Tools: [['🧰', '🔧', '🪚', '🔨'], ['🛠️', '🔩', '🧲', '🪓'], ['📐', '🧮', '🪛', '🔨']],
+  Space: [['🚀', '🪐', '🌙', '⭐'], ['🛰️', '🌌', '☄️', '🌠'], ['🪐', '🌍', '🌑', '🚀']],
+  Elements: [['🧊', '🔥', '💧', '🌬️'], ['🌍', '💨', '🧱', '⚡'], ['🌙', '❄️', '🏜️', '💧']],
+  Mammals: [['🦁', '🐘', '🦒', '🦏'], ['🐼', '🐨', '🦊', '🐻'], ['🐆', '🐇', '🐬', '🐘']],
+  Fruit: [['🍎', '🍌', '🍇', '🥭'], ['🍊', '🍏', '🍉', '🍍'], ['🍐', '🥝', '🍋', '🍑']],
+  Clothes: [['🧣', '🧥', '👟', '👕'], ['👖', '🧢', '🧤', '👗'], ['🥾', '🧦', '🎽', '👔']],
+  Technology: [['🖥️', '📱', '💻', '🖱️'], ['📡', '🔋', '🧠', '📼'], ['⌨️', '🖲️', '💾', '🧰']],
+  Art: [['🎨', '🖌️', '🖼️', '🎭'], ['🧵', '🪡', '🧶', '🎨'], ['🖍️', '🪄', '🎬', '🎨']],
+  Birds: [['🦅', '🐦', '🦆', '🕊️'], ['🦉', '🐤', '🦜', '🐧'], ['🐥', '🦩', '🦚', '🐦']],
+  Fish: [['🦀', '🐠', '🐡', '🐬'], ['🐟', '🦐', '🦞', '🐳'], ['🐙', '🐠', '🦑', '🐡']],
+  Furniture: [['🧱', '🛋️', '🪑', '🛏️'], ['🪴', '🧺', '🛁', '🧻'], ['📦', '🛏️', '🧸', '🪑']],
+  Drinks: [['🍷', '☕', '🍺', '🥤'], ['🧃', '🥭', '🧉', '🍵'], ['🍋', '🥣', '🍊', '🧃']],
+  Vegetables: [['🌾', '🥕', '🥬', '🌽'], ['🫑', '🍅', '🥒', '🌶️'], ['🥦', '🧄', '🫛', '🧅']],
+  Electronics: [['🧲', '🔌', '🔋', '📡'], ['📱', '💻', '🎧', '⌚'], ['🖥️', '🖨️', '📷', '🔊']],
+  Reptiles: [['🐍', '🦎', '🐢', '🦖'], ['🐲', '🦂', '🦎', '🦕'], ['🦆', '🦉', '🐍', '🦎']],
+  Insects: [['🦋', '🐝', '🕷️', '🐜'], ['🪲', '🦟', '🐛', '🦗'], ['🦋', '🕸️', '🪲', '🐌']],
+  Vehicles: [['🚗', '🚕', '🚌', '🚎'], ['🚑', '🚜', '🚙', '🚓'], ['🚚', '🛴', '🛵', '🚴']],
+  Plants: [['🌴', '🌺', '🌵', '🌾'], ['🪴', '🌱', '🌿', '🌼'], ['🌷', '🌻', '🌳', '🌹']],
+  Office: [['💼', '📊', '🧾', '📁'], ['🖇️', '📎', '🗂️', '📄'], ['🧾', '🖊️', '🧻', '📋']],
+  Science: [['🔬', '🧪', '🧬', '⚗️'], ['🧫', '🧠', '🧬', '🔭'], ['⚙️', '💡', '📡', '🧪']],
+  Home: [['🏠', '🛏️', '🪑', '🛁'], ['🪟', '🚿', '🧺', '🛁'], ['🕯️', '🛋️', '🧸', '🛏️']],
+  Games: [['🎮', '🕹️', '🎲', '🧩'], ['♟️', '🎯', '🧩', '🎲'], ['🏓', '🎳', '♟️', '🧩']],
+  Books: [['📚', '📔', '📖', '📝'], ['📓', '📗', '📘', '📕'], ['📒', '📜', '🧾', '📚']],
+  Jobs: [['🧑‍🍳', '👩‍🏫', '🧑‍💼', '👩‍🚒'], ['🧑‍🔧', '👩‍⚕️', '👨‍🏭', '🧑‍✈️'], ['📐', '🧑‍🌾', '🧑‍🏫', '👩‍💻']],
 }
 
-function shuffleArray(items) {
+const LEVEL_LIBRARY = {
+  1: ['Food', 'Animals', 'Sports', 'Travel', 'Weather', 'School', 'Music', 'Nature', 'Tools', 'Space'],
+  2: ['Elements', 'Mammals', 'Fruit', 'Clothes', 'Technology', 'Art', 'Birds', 'Fish', 'Furniture', 'Drinks'],
+  3: ['Vegetables', 'Electronics', 'Reptiles', 'Insects', 'Animals', 'Fruit', 'Vehicles', 'Music', 'Plants', 'Tools'],
+  4: ['Office', 'Science', 'Art', 'Technology', 'Nature', 'Travel', 'Home', 'Games', 'Books', 'Jobs'],
+  5: ['Space', 'Weather', 'Plants', 'Tools', 'Books', 'Games', 'Nature', 'Food', 'Music', 'School'],
+  6: ['Travel', 'Food', 'School', 'Technology', 'Office', 'Science', 'Nature', 'Weather', 'Music', 'Games'],
+  7: ['Nature', 'Travel', 'Technology', 'Food', 'Weather', 'Music', 'School', 'Tools', 'Sports', 'Space'],
+  8: ['Games', 'Tools', 'Food', 'Travel', 'Nature', 'Science', 'School', 'Weather', 'Music', 'Art'],
+  9: ['Space', 'Technology', 'Nature', 'Science', 'Travel', 'Weather', 'Food', 'Music', 'School', 'Games'],
+  10: ['Space', 'Technology', 'Science', 'Travel', 'Nature', 'Music', 'Food', 'Weather', 'Games', 'School'],
+}
+
+function createSeededRandom(seed) {
+  let state = seed >>> 0
+
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0
+    return state / 4294967296
+  }
+}
+
+function shuffleArray(items, random) {
   const nextItems = [...items]
 
   for (let index = nextItems.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(Math.random() * (index + 1))
+    const randomIndex = Math.floor(random() * (index + 1))
     ;[nextItems[index], nextItems[randomIndex]] = [nextItems[randomIndex], nextItems[index]]
   }
 
   return nextItems
 }
 
-export function getEmojiSetForLevel(level) {
-  const tierIndex = Math.min(Math.max((level || 1) - 1, 0), emojiSets.length - 1)
-  return emojiSets[tierIndex]
+export function getDailyQuestionSeed(level, referenceDate = new Date()) {
+  const normalizedDate = new Date(referenceDate)
+  normalizedDate.setHours(0, 0, 0, 0)
+  const dateStamp = normalizedDate.toISOString().slice(0, 10)
+  return `${level}-${dateStamp}`
 }
 
-export function getQuestionsForLevel(level, total = GAME_SETTINGS.totalQuestions) {
-  const tier = getEmojiSetForLevel(level)
-  const pool = questionTiers[tier]
-  const selected = []
+export function getRoundAccuracy(score, total = GAME_SETTINGS.totalQuestions) {
+  const safeTotal = Math.max(Number(total) || 0, 0)
+  if (safeTotal === 0) return 0
+  return Math.round((Number(score) / safeTotal) * 100)
+}
 
-  for (let i = 0; i < total; i += 1) {
-    const question = pool[i % pool.length]
-    selected.push({
-      ...question,
-      options: shuffleArray(question.options),
+export function canUnlockNextLevel(score, total = GAME_SETTINGS.totalQuestions) {
+  return getRoundAccuracy(score, total) >= GAME_SETTINGS.passThreshold
+}
+
+export function getQuestionsForLevel(level, total = GAME_SETTINGS.totalQuestions, referenceDate = new Date()) {
+  const normalizedLevel = Math.min(Math.max(Number(level) || 1, 1), 10)
+  const categoryPool = LEVEL_LIBRARY[normalizedLevel] || LEVEL_LIBRARY[1]
+  const seed = getDailyQuestionSeed(normalizedLevel, referenceDate)
+  const random = createSeededRandom(Array.from(seed).reduce((accumulator, char) => accumulator + char.charCodeAt(0), 0))
+  const questions = []
+  const usedKeys = new Set()
+
+  while (questions.length < total) {
+    const categoryIndex = Math.floor(random() * categoryPool.length)
+    const category = categoryPool[categoryIndex]
+    const emojiPatterns = CATEGORY_LIBRARY[category] || CATEGORY_LIBRARY.Food
+    const emojiIndex = Math.floor(random() * emojiPatterns.length)
+    const pattern = emojiPatterns[emojiIndex]
+    const key = `${category}:${pattern.join('-')}`
+
+    if (usedKeys.has(key)) {
+      continue
+    }
+
+    const distractorPool = categoryPool.filter((entry) => entry !== category)
+    const options = shuffleArray([
+      category,
+      ...distractorPool.slice(0, 3).sort(() => random() - 0.5),
+    ], random)
+
+    questions.push({
+      emojis: pattern,
+      correct: category,
+      options,
     })
+
+    usedKeys.add(key)
   }
 
-  return selected
+  return questions
 }
 
 export function getXPGainForLevel(level) {
-  const baseXP = 10 + level * 2
+  const baseXP = 10 + (level || 1) * 2
   return baseXP
 }

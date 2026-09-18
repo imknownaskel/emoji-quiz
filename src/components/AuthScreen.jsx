@@ -2,12 +2,19 @@ import { useState } from 'react'
 import { signUp, signIn, signInWithGoogle, resetPassword } from '../lib/auth.js'
 import { auth } from '../lib/firebase.js'
 import { reload } from 'firebase/auth'
+import { getLanguageFromLocale } from '../lib/translate.js'
 
-const initialState = { username: '', email: '', password: '', confirmPassword: '' }
+const initialState = {
+  username: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+  language: getLanguageFromLocale(navigator.language),
+}
 
 function AuthScreen({ onAuth }) {
   const [isSignup, setIsSignup] = useState(false)
-  const [stage, setStage] = useState('auth')
+  const [authStep, setAuthStep] = useState('auth')
   const [form, setForm] = useState(initialState)
   const [pendingEmail, setPendingEmail] = useState('')
   const [error, setError] = useState('')
@@ -54,7 +61,7 @@ function AuthScreen({ onAuth }) {
         return
       }
 
-      const { error: signUpError } = await signUp(email, password, username)
+      const { error: signUpError } = await signUp(email, password, username, form.language)
       if (signUpError) {
         setError(signUpError)
         setLoading(false)
@@ -62,7 +69,7 @@ function AuthScreen({ onAuth }) {
       }
 
       setPendingEmail(email)
-      setStage('waiting')
+      setAuthStep('waiting')
       setLoading(false)
     } else {
       if (!email || !password) {
@@ -82,7 +89,7 @@ function AuthScreen({ onAuth }) {
         onAuth(user)
       } else {
         setPendingEmail(email)
-        setStage('waiting')
+        setAuthStep('waiting')
       }
       setLoading(false)
     }
@@ -137,7 +144,7 @@ function AuthScreen({ onAuth }) {
     setSuccess('If an account exists for that email, a password reset link has been sent. Check your inbox.')
   }
 
-  if (stage === 'waiting') {
+  if (authStep === 'waiting') {
     return (
       <div className="screen auth-screen">
         <div className="auth-card game-auth-card">
@@ -161,7 +168,7 @@ function AuthScreen({ onAuth }) {
           <button
             type="button"
             className="secondary-button full-width"
-            onClick={() => { setStage('auth'); setError('') }}
+            onClick={() => { setAuthStep('auth'); setError('') }}
           >
             ← Back
           </button>
@@ -170,7 +177,7 @@ function AuthScreen({ onAuth }) {
     )
   }
 
-  if (stage === 'forgot') {
+  if (authStep === 'forgot') {
     return (
       <div className="screen auth-screen">
         <div className="auth-card game-auth-card">
@@ -206,7 +213,7 @@ function AuthScreen({ onAuth }) {
             <button
               type="button"
               className="secondary-button full-width"
-              onClick={() => { setStage('auth'); setError(''); setSuccess('') }}
+              onClick={() => { setAuthStep('auth'); setError(''); setSuccess('') }}
             >
               ← Back to login
             </button>
@@ -251,17 +258,24 @@ function AuthScreen({ onAuth }) {
 
         <form onSubmit={handleSubmit} className="auth-form">
           {isSignup ? (
-            <label>
-              <span>Username</span>
-              <input
-                type="text"
-                name="username"
-                value={form.username}
-                onChange={handleChange}
-                placeholder="emoji_master"
-                required
-              />
-            </label>
+            <>
+              <label>
+                <span>Username</span>
+                <input
+                  type="text"
+                  name="username"
+                  value={form.username}
+                  onChange={handleChange}
+                  placeholder="emoji_master"
+                  required
+                />
+              </label>
+
+              <div className="panel" style={{ padding: '0.75rem 1rem', marginTop: '0.5rem' }}>
+                <strong>Detected language</strong>
+                <div style={{ marginTop: '0.35rem' }}>{form.language}</div>
+              </div>
+            </>
           ) : null}
 
           <label>
@@ -300,7 +314,7 @@ function AuthScreen({ onAuth }) {
               <button
                 type="button"
                 className="text-button"
-                onClick={() => { setStage('forgot'); setError(''); setSuccess('') }}
+                onClick={() => { setAuthStep('forgot'); setError(''); setSuccess('') }}
               >
                 Forgot password?
               </button>

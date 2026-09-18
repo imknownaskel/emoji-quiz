@@ -1,4 +1,4 @@
-function ResultScreen({ score, totalQuestions, xpGained, user, onPlayAgain }) {
+function ResultScreen({ score, totalQuestions, xpGained, level, user, onPlayAgain, onBackHome }) {
   const percentage = (score / totalQuestions) * 100
   let grade = '💪 Try Again'
   let gradeClass = 'grade-try-again'
@@ -37,13 +37,18 @@ function ResultScreen({ score, totalQuestions, xpGained, user, onPlayAgain }) {
           </div>
           <div>
             <span>Level</span>
-            <strong>{user.level}</strong>
+            <strong>{level || user.level || 1}</strong>
           </div>
         </div>
 
-        <button type="button" className="primary-button large" onClick={onPlayAgain}>
-          Play Again
-        </button>
+        <div className="result-actions">
+          <button type="button" className="primary-button large" onClick={onPlayAgain}>
+            Play Again
+          </button>
+          <button type="button" className="grey-button large" onClick={onBackHome}>
+            Back to Home
+          </button>
+        </div>
       </div>
     </div>
   )
