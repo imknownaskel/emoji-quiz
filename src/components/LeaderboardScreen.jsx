@@ -110,7 +110,7 @@ function LeaderboardScreen({ currentUserId, onBack }) {
                         Lv.{entry.level}
                       </span>
                       <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>
-                        {entry.high_score}
+                        {Number(entry.xp ?? 0)} XP
                       </span>
                     </div>
                   </div>

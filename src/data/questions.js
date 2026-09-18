@@ -109,11 +109,8 @@ export function getQuestionsForLevel(level, total = GAME_SETTINGS.totalQuestions
       continue
     }
 
-    const distractorPool = categoryPool.filter((entry) => entry !== category)
-    const options = shuffleArray([
-      category,
-      ...distractorPool.slice(0, 3).sort(() => random() - 0.5),
-    ], random)
+    const distractorPool = shuffleArray(categoryPool.filter((entry) => entry !== category), random).slice(0, 3)
+const options = shuffleArray([category, ...distractorPool], random)
 
     questions.push({
       emojis: pattern,

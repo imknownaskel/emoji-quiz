@@ -217,13 +217,13 @@ export async function deleteAccount(userId) {
       return { error: 'You must be signed in to delete this account.' };
     }
 
-    await currentUser.delete();
-
     try {
       await deleteDoc(doc(db, 'profiles', userId));
     } catch (profileError) {
-      console.warn('Profile document cleanup failed after account deletion:', profileError);
+      console.warn('Profile document cleanup failed before account deletion:', profileError);
     }
+
+    await currentUser.delete();
 
     return { error: null };
   } catch (error) {
@@ -241,7 +241,7 @@ export async function getLeaderboard() {
   try {
     const q = query(
       collection(db, 'profiles'),
-      orderBy('high_score', 'desc'),
+      orderBy('xp', 'desc'),
       limit(50)
     );
     const snapshot = await getDocs(q);
